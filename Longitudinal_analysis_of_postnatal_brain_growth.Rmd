@@ -1,0 +1,32 @@
+# Longitudinal analysis of postnatal brain growth
+
+Example code to perform longitudinal modelling of brain volumes as in [Ball & Seal 2019](https://link.springer.com/article/10.1007%2Fs00429-019-01829-5)
+
+Files included:
+  - run_models.R: R script to run models and output trajectory plots
+  - brain_tissue_volume.csv: longitudinal measures of regional brain tissue volumes
+
+Run 
+```r 
+source('run_models.R')
+``` 
+to run a series of models and output individual, group average and male/female longitudinal trajectories for intracranial and/or brain tissue volumes (corrected for ICV). Follow comments in the script to run with/without random intercepts and slopes, and with other tissue compartments.
+
+The following packages are required to run the script:
+
+```r
+install.packages('tidyr', 'tibble', 'dplyr', 'ggplot2', 'mgcv', 'cowplot', 'itsadug', 'grid')
+```
+
+
+Please see the paper for details on brain tissue volume extraction and statistical modelling. Volumetric data were derived from the UNC-Wisconsin Rhesus Macaque Neurodevelopment Database. Please cite: 
+>Young JT, Shi Y, Niethammer M, Grauer M, Coe CL, Lubach GR, Davis B, Budin F, Knickmeyer RC, Alexander AL, Styner MA. 2017. The UNC-Wisconsin Rhesus Macaque Neurodevelopment Database: A Structural MRI and DTI Database of Early Postnatal Development. Front Neurosci. 11.
+
+
+
+
+
+
+
+any comments/queries to: [Gareth Ball](mailto:gareth.ball@mcri.edu.au)
+ 
