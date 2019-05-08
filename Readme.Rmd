@@ -1,0 +1,119 @@
+---
+title: "Longitudinal analysis of post-natal brain growth"
+author: "Gareth Ball"
+date: "08/05/2019"
+output:   
+  html_document:
+    keep_md: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::read_chunk("run_models.R")
+```
+
+# Introduction
+
+Example `R` code to perform longitudinal modelling of brain volumes as in [Ball & Seal 2019](https://link.springer.com/article/10.1007%2Fs00429-019-01829-5)
+
+Please see the paper for details on brain tissue volume extraction and statistical modelling. Volumetric data were derived from the UNC-Wisconsin Rhesus Macaque Neurodevelopment Database. Please cite: 
+>Young JT, Shi Y, Niethammer M, Grauer M, Coe CL, Lubach GR, Davis B, Budin F, Knickmeyer RC, Alexander AL, Styner MA. 2017. The UNC-Wisconsin Rhesus Macaque Neurodevelopment Database: A Structural MRI and DTI Database of Early Postnatal Development. Front Neurosci. 11.
+
+This repository contains the code in the file `run_models.R` and the data in `brain_tissue_volumes.csv`. This
+R markdown document contains a walkthrough of the procedures, including display of the code and results. It can
+be reproduced by cloning the repository, loading the `Readme.Rmd` file in rstudio, and pressing the `Knit` button.
+
+## Setup
+
+Load required libraries. Attempt to install missing ones. Set up plotting tools.
+```{r Setup, message=FALSE}
+
+```
+
+## Load and format data
+Formatting the data units, globally setting the k for GAMS.
+```{r LoadData}
+
+```
+
+## Intracranial volume trajectories
+
+Test some multi-level models with combinations of age and sex, and a GAM model with a smooth function of age.
+```{r FitICV}
+
+```
+
+Now compare the models.
+```{r CompareICV}
+
+```
+
+Also compare to model with random slope.
+```{r ICVRandomSlope}
+
+```
+
+Set up data for plotting
+```{r ICVPlotData}
+
+```
+
+Perform predictions
+```{r ICVPredict}
+
+```
+
+Create individual plots, to be combined with others below.
+```{r ICVPlotsIndividual}
+
+```
+
+Set up plots of average trajectories, and male and female trajectories.
+```{r ICVPlotsAverage}
+
+```
+
+```{r ICVPlotsSex}
+
+```
+
+Display the plots
+```{r DisplayICVPlots, echo=FALSE, fig.cap="Brain volume trajectories for individuals, average, and male/female"}
+
+```
+
+## Grey-matter volume trajectories
+
+Apply the same procedure to GM volumes.
+
+First fit the models, compare, and check for random slopes.
+
+```{r GMModels}
+
+```
+
+Prepare data for and predict the average trajectories.
+```{r GMAverageData}
+
+```
+
+```{r GMAveragePredict}
+
+```
+
+Prepare data and predict trajectories based on sex.
+
+```{r GMSex}
+
+```
+```{r GMSexPredict}
+
+```
+Display the trajectories for GM.
+
+```{r GMPlotSex, echo=FALSE, fig.cap="Grey matter volume trajectories for average, and male/female"}
+
+```
+
+

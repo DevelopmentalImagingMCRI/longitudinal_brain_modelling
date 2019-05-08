@@ -1,4 +1,31 @@
-## ---- Setup ----
+---
+title: "Longitudinal analysis of post-natal brain growth"
+author: "Gareth Ball"
+date: "08/05/2019"
+output:   
+  html_document:
+    keep_md: true
+
+---
+
+
+
+# Introduction
+
+Example `R` code to perform longitudinal modelling of brain volumes as in [Ball & Seal 2019](https://link.springer.com/article/10.1007%2Fs00429-019-01829-5)
+
+Please see the paper for details on brain tissue volume extraction and statistical modelling. Volumetric data were derived from the UNC-Wisconsin Rhesus Macaque Neurodevelopment Database. Please cite: 
+>Young JT, Shi Y, Niethammer M, Grauer M, Coe CL, Lubach GR, Davis B, Budin F, Knickmeyer RC, Alexander AL, Styner MA. 2017. The UNC-Wisconsin Rhesus Macaque Neurodevelopment Database: A Structural MRI and DTI Database of Early Postnatal Development. Front Neurosci. 11.
+
+This repository contains the code in the file `run_models.R` and the data in `brain_tissue_volumes.csv`. This
+R markdown document contains a walkthrough of the procedures, including display of the code and results. It can
+be reproduced by cloning the repository, loading the `Readme.Rmd` file in rstudio, and pressing the `Knit` button.
+
+## Setup
+
+Load required libraries. Attempt to install missing ones. Set up plotting tools.
+
+```r
 rqpackages <- c('tidyverse', 'mgcv', 'cowplot', 'itsadug', 'grid', "lmerTest")
 missingpackages <- setdiff(rqpackages, rownames(installed.packages()))
 if (length(missingpackages) > 0) {
@@ -31,8 +58,12 @@ expand_data <- function(data){
   }
   return(expanded_data)
 }
+```
 
-## ---- LoadData ----
+## Load and format data
+Formatting the data units, globally setting the k for GAMS.
+
+```r
 ####################################################################################
 # Setup and load data
 ####################################################################################
@@ -51,8 +82,13 @@ data$WM <- data$WM/1000
 data$cerebellum <- data$cerebellum/1000
 
 # Fit models 
+```
 
-## ---- FitICV ----
+## Intracranial volume trajectories
+
+Test some multi-level models with combinations of age and sex, and a GAM model with a smooth function of age.
+
+```r
 ##########################################################################
 # Intracranial Volume (ICV)
 ##########################################################################
@@ -64,20 +100,54 @@ model1 <- lmerTest::lmer(ICV ~ 1 + (1 + 1|ID) + Age + Male, data=data, REML=F)
 
 # Then model age as a smooth function with a GAM...
 modelGAM <- gam(ICV ~ 1 + s(ID, bs="re") + s(Age, k=k) + Male, method="ML", data=data)
+```
 
-## ---- CompareICV ----
+Now compare the models.
+
+```r
 # compare models with AIC
 model_selection = AIC(model0,model1,modelGAM)
 print(model_selection)
+```
 
-## ---- ICVRandomSlope ----
+```
+##                df      AIC
+## model0    4.00000 785.1602
+## model1    5.00000 725.4776
+## modelGAM 41.61288 587.7114
+```
+
+Also compare to model with random slope.
+
+```r
 # and finally, compare to the inclusion of random slopes as well
 modelGAMslope <- gam(ICV ~ 1 + s(ID, bs="re") + s(ID, Age, bs="re") + s(Age, k=k) + Male, method="ML", data=data)
 gam_model_selection <- AIC(modelGAM, modelGAMslope)
 compareML(modelGAM, modelGAMslope, suggest.report = T)
+```
 
+```
+## modelGAM: ICV ~ 1 + s(ID, bs = "re") + s(Age, k = k) + Male
+## 
+## modelGAMslope: ICV ~ 1 + s(ID, bs = "re") + s(ID, Age, bs = "re") + s(Age, k = k) + 
+##     Male
+## 
+## Report suggestion: The Chi-Square test on the ML scores indicates that model modelGAMslope is [marginally / significantly] better than model modelGAM (X2(1.00)=2.861, p0.017).
+## -----
+##           Model   Score Edf Difference    Df p.value Sig.
+## 1      modelGAM 351.386   5                              
+## 2 modelGAMslope 348.525   6      2.861 1.000   0.017  *  
+## 
+## AIC difference: 28.84, model modelGAMslope has lower AIC.
+```
 
-## ---- ICVPlotData ----
+```
+## Warning in compareML(modelGAM, modelGAMslope, suggest.report = T): Only small difference in ML...
+```
+
+Set up data for plotting
+
+```r
 ####################################################################################
 # Plot models
 ####################################################################################
@@ -87,8 +157,11 @@ plot_model <- modelGAM
 ####################################################################################
 # Individual trajectories
 expanded_data <- expand_data(data)
+```
 
-## ---- ICVPredict ----
+Perform predictions
+
+```r
 # model predictions
 predictions <- predict(plot_model, newdata=expanded_data, se.fit = T)
 predicted_data <- data.frame(predictions$fit , predictions$se.fit)
@@ -99,11 +172,18 @@ predicted_data$lower <- predicted_data$fit  - 1.96*(predicted_data$se)
 
 # collect prediction, lower and upper CI together
 tempdf <- bind_cols(expanded_data, predicted_data)
-## ---- ICVPlotsIndividual ----
+```
+
+Create individual plots, to be combined with others below.
+
+```r
 # plot individual fits
 plot_ICV_1 <- plotter(tempdf, data, "Age", "fit", "Age", "ICV", fit_grp="ID", orig_grp="ID")
+```
 
-## ---- ICVPlotsAverage ----
+Set up plots of average trajectories, and male and female trajectories.
+
+```r
 ####################################################################################
 # Average trajectories
 age_sequence <- seq(from=min(data$Age),to=max(data$Age), length.out=100)
@@ -125,8 +205,10 @@ tempdf$ID <- factor(tempdf$ID)
 
 # plot group average fit
 plot_ICV_2 <- plotter(tempdf, data, "Age", "fit", "Age", "ICV", fit_grp="ID", orig_grp="ID")
+```
 
-## ---- ICVPlotsSex ----
+
+```r
 ####################################################################################
 # Male and female trajectories
 male_x <- all_x
@@ -149,16 +231,19 @@ tempdf$Male <- factor(tempdf$Male)
 
 # plot trajectories
 plot_ICV_3 <-  plotter(tempdf, data, "Age", "fit", "Age", "ICV", fit_grp="Male", orig_grp="ID")
+```
 
-## ---- DisplayICVPlots ----
-####################################################################################
-# save plots
-icv_plots <- plot_grid(plot_ICV_1, plot_ICV_2, plot_ICV_3, labels = "auto",nrow=1)
-ggplot2::ggsave(file="ICV_plots.pdf",icv_plots, width = 25, height = 10, units = "cm", dpi=200)
-####################################################################################
-icv_plots
+Display the plots
+![Brain volume trajectories for individuals, average, and male/female](Readme_files/figure-html/DisplayICVPlots-1.png)
 
-## ---- GMModels ----
+## Grey-matter volume trajectories
+
+Apply the same procedure to GM volumes.
+
+First fit the models, compare, and check for random slopes.
+
+
+```r
 ####################################################################################
 # Regional tissue volume, correcting for ICV
 # in this case using corticalGM, edit as required.
@@ -172,17 +257,50 @@ modelGAMtissueslope <- gam(corticalGM ~ 1 + s(ID, bs="re") +  s(ID, Age, bs="re"
 # compare models with AIC
 tissue_model_selection = AIC(model0tissue,model1tissue,modelGAMtissue)
 print(tissue_model_selection)
+```
 
+```
+##                      df      AIC
+## model0tissue    5.00000 725.7366
+## model1tissue    6.00000 617.0833
+## modelGAMtissue 41.34702 456.0604
+```
+
+```r
 compareML(modelGAMtissue, modelGAMtissueslope, suggest.report = T)
+```
 
+```
+## modelGAMtissue: corticalGM ~ 1 + s(ID, bs = "re") + s(Age, k = k) + ICV + Male
+## 
+## modelGAMtissueslope: corticalGM ~ 1 + s(ID, bs = "re") + s(ID, Age, bs = "re") + s(Age, 
+##     k = k) + ICV + Male
+## 
+## Model modelGAMtissue preferred: lower ML score (0.000), and lower df (1.000).
+## -----
+##                 Model    Score Edf Difference     Df
+## 1 modelGAMtissueslope 258.9568   7                  
+## 2      modelGAMtissue 258.9568   6      0.000 -1.000
+## 
+## AIC difference: -0.00, model modelGAMtissue has lower AIC.
+```
+
+```
+## Warning in compareML(modelGAMtissue, modelGAMtissueslope, suggest.report = T): Only small difference in ML...
+```
+
+```r
 ####################################################################################
 # Plot models 
 ####################################################################################
 # Tissue volume
 # choose model to plot: modelGAM, modelGAMslope - check lines 186, 194 and 217 if using modelGAMslope
 plot_model <- modelGAMtissue
+```
 
-## ---- GMAverageData ----
+Prepare data for and predict the average trajectories.
+
+```r
 ####################################################################################
 # Average trajectories
 age_sequence <- seq(from=min(data$Age),to=max(data$Age), length.out=100)
@@ -203,8 +321,10 @@ tmp_model <- gam(formula(plot_model),
 #                        plot_model$sp["s(ID,Age)"],
 #                        plot_model$sp["s(Age)"]),
 #                 method="ML", data=data_tmp)
+```
 
-## ---- GMAveragePredict ----
+
+```r
 # model predictions without random effects
 predictions <- predict(tmp_model, newdata=all_x, se.fit = T, exclude=c(s(ID)))
 #predictions <- predict(tmp_model, newdata=all_x, se.fit = T, exclude=c(s(ID), s(ID,Age)))  # if using modelGAMslope
@@ -219,8 +339,12 @@ tempdf$ID <- factor(tempdf$ID)
 
 # plot group average fit
 plot_tissue_1 <- plotter(tempdf, data_tmp, "Age", "fit", "Age", "corticalGM", "ID", "ID")
- 
-## ---- GMSex ----
+```
+
+Prepare data and predict trajectories based on sex.
+
+
+```r
 ####################################################################################
 # Male and female trajectories
 male_x <- all_x
@@ -228,8 +352,9 @@ male_x$Male <- c(1)
 female_x <- all_x
 female_x$Male <- c(0)
 all_x <- rbind(male_x, female_x)
+```
 
-## ---- GMSexPredict ----
+```r
 # model predictions without random effects
 predictions <- predict(tmp_model, newdata=all_x, se.fit = T, exclude=c(s(ID)))
 #predictions <- predict(tmp_model, newdata=all_x, se.fit = T, exclude=c(s(ID), s(ID,Age)))  # if using modelGAMslope
@@ -244,11 +369,9 @@ tempdf$Male <- factor(tempdf$Male)
 
 # plot
 plot_tissue_2 <- plotter(tempdf, data_tmp, "Age", "fit", "Age", "corticalGM", "Male", "ID")
-  
-## ---- GMPlotSex ----
-####################################################################################
-# save out
-tissue_plots <- plot_grid(plot_tissue_1, plot_tissue_2, labels = "auto",nrow=1)
-ggplot2::ggsave(file="tissue_volume_plots.pdf", tissue_plots, width = 25, height = 10, units = "cm", dpi=200)
-####################################################################################
-tissue_plots
+```
+Display the trajectories for GM.
+
+![Grey matter volume trajectories for average, and male/female](Readme_files/figure-html/GMPlotSex-1.png)
+
+
