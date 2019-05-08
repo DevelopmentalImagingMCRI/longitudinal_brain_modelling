@@ -40,23 +40,31 @@ library('grid')
 # plotting function
 plotter <- function(plot_data, orig_data, fit_xx, fit_yy, orig_xx, orig_yy, fit_grp, orig_grp, lower="lower", upper="upper") {
   ggplot(data=plot_data) +
-                 geom_line(aes_string(x = fit_xx, y = fit_yy, group = fit_grp, colour=fit_grp), show.legend = FALSE) +
-                 geom_ribbon(aes_string(x = fit_xx, ymin = lower, ymax = upper, fill = fit_grp), alpha=0.075, show.legend=FALSE) +
-                 geom_line(data=orig_data, aes_string(x = orig_xx, y = orig_yy, group = orig_grp), alpha=.1, size=.4, linetype=5, show.legend = FALSE) + 
-                 expand_limits(y=0) +
-                 labs(x = "Age", y = "volume")  +
-                 theme_minimal() 
+    geom_line(aes_string(x = fit_xx, y = fit_yy, group = fit_grp, colour=fit_grp), show.legend = FALSE) +
+    geom_ribbon(aes_string(x = fit_xx, ymin = lower, ymax = upper, fill = fit_grp), alpha=0.075, show.legend=FALSE) +
+    geom_line(data=orig_data, aes_string(x = orig_xx, y = orig_yy, group = orig_grp), alpha=.1, size=.4, linetype=5, show.legend = FALSE) + 
+    expand_limits(y=0) +
+    labs(x = "Age", y = "volume")  +
+    theme_minimal() 
 }
 
 # function to create individual data for plotting trajectories
 expand_data <- function(data){
   expanded_data = NULL
   for (id in unique(data$ID)){
-    age_seq = seq(from=min(data[data$ID==id,][,4]), to=max(data[data$ID==id,][,4]), length.out=50)
-    expid = expand.grid(ID=id, Male=data[data$ID==id,][[1,3]], Age=age_seq)
+    age_seq = seq(from=min(data[data$ID==id,][,"Age"]), to=max(data[data$ID==id,][,"Age"]), length.out=50)
+    expid = data.frame(ID=id, Male=data[data$ID==id,][[1,"Male"]], Age=age_seq)
     expanded_data=rbind(expanded_data, expid)
   }
   return(expanded_data)
+}
+
+## Loopless tidyverse version
+expand_data <- function(data){
+  df.range <- summarize(group_by(data, ID, Male), minA=min(Age), maxA=max(Age))
+  df.range <- mutate(df.range, Age=map2(minA, maxA, ~seq(from=.x, to=.y, length.out=50)))
+  df.range <- select(df.range, -minA, -maxA)
+  unnest(df.range)
 }
 ```
 
@@ -71,15 +79,39 @@ Formatting the data units, globally setting the k for GAMS.
 k=20
 
 # load data
-data <- as_tibble(read.csv('./brain_tissue_volumes.csv')[ ,2:14])
-data$ID <- as.factor(data$ID)
+data <- read_csv('./brain_tissue_volumes.csv')
+```
 
-# convert volume to ml (mm3/1000)
-data$ICV <- data$ICV/1000
-data$corticalGM <- data$corticalGM/1000
-data$subcorticalGM <- data$subcorticalGM/1000
-data$WM <- data$WM/1000
-data$cerebellum <- data$cerebellum/1000
+```
+## Parsed with column specification:
+## cols(
+##   studyID = col_double(),
+##   ID = col_double(),
+##   timepoint = col_double(),
+##   Male = col_double(),
+##   Age = col_double(),
+##   ICV = col_double(),
+##   corticalGM = col_double(),
+##   subcorticalGM = col_double(),
+##   WM = col_double(),
+##   cerebellum = col_double(),
+##   thalamus = col_double(),
+##   pallidum = col_double(),
+##   striatum = col_double(),
+##   amygdalaHippocampus = col_double()
+## )
+```
+
+```r
+data <- select(data, -studyID)
+
+data <- mutate(data, ID=factor(ID),
+               # convert volume to ml (mm3/1000)
+               ICV=ICV/1000,
+               corticalGM=corticalGM/1000,
+               subcorticalGM=subcorticalGM/1000,
+               WM=WM/1000,
+               cerebellum=cerebellum/1000)
 
 # Fit models 
 ```
